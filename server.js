@@ -40,7 +40,7 @@ function handleError(res, reason, message, code) {
  *    POST: creates a new contact
  */
 
-app.get("/api/balance", function(req, res) {
+app.get("/api/session", function(req, res) {
   db.collection("sessions").findOne({ token: req.body.token }).(function(err, doc) {
     if (err) {
       handleError(res, err.message, "Failed to get session.");
@@ -50,7 +50,7 @@ app.get("/api/balance", function(req, res) {
   });
 });
 
-app.post("/api/createSession", function(req, res) {
+app.post("/api/session", function(req, res) {
 
   db.collection("sessions").insertOne({
     token: req.body.token, //not a real token in the secure sense, we don't really care about data because this is a demo
