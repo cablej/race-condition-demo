@@ -41,7 +41,7 @@ function handleError(res, reason, message, code) {
  */
 
 app.get("/api/session", function(req, res) {
-  db.collection("sessions").findOne({ token: req.body.token }).(function(err, doc) {
+  db.collection("sessions").findOne({ token: req.body.token }, function(err, doc) {
     if (err) {
       handleError(res, err.message, "Failed to get session.");
     } else {
