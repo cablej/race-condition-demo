@@ -72,15 +72,16 @@ app.post("/api/session", function(req, res) {
 
 app.post("/api/send", function(req, res) {
   db.collection("sessions").findOne({ token: req.body.token }, function(err, session) {
+    amount = Number(req.body.amount) || 0;
     if (err || !session) {
       handleError(res, err && err.message, "Failed to get session.");
     } else {
       setTimeout(function() { // add an artificial pause of 1 second to make easier to reproduce
         var shouldProceed = false;
-        if (req.body.sending && req.body.amount > 0 && req.body.amount <= session.balanceA) {
+        if (req.body.sending && amount > 0 && amount <= session.balanceA) {
           shouldProceed = true;
         }
-        if (!req.body.sending && req.body.amount > 0 && req.body.amount <= session.balanceB) {
+        if (!req.body.sending && amount > 0 && amount <= session.balanceB) {
           shouldProceed = true;
         }
         if (shouldProceed) {
@@ -90,8 +91,8 @@ app.post("/api/send", function(req, res) {
             } else {
               var updatedObject = {
                 _id: session._id,
-                balanceA: updatedSession.balanceA + (req.body.sending ? -1*req.body.amount : req.body.amount),
-                balanceB: updatedSession.balanceB + (req.body.sending ? req.body.amount : -1*req.body.amount), 
+                balanceA: updatedSession.balanceA + (req.body.sending ? -1*amount : amount),
+                balanceB: updatedSession.balanceB + (req.body.sending ? amount : -1*amount), 
                 token: session.token};
               db.collection("sessions").save(updatedObject, function(err, doc) {
                 if (err) {
