@@ -49,7 +49,7 @@ function handleError(res, reason, message, code) {
 app.get("/api/session", function(req, res) {
   db.collection("sessions").findOne({ token: req.query.token }, function(err, doc) {
     if (err || !doc) {
-      handleError(res, err.message, "Failed to get session.");
+      handleError(res, err && err.message, "Failed to get session.");
     } else {
       res.status(200).json(doc);
     }
@@ -63,7 +63,7 @@ app.post("/api/session", function(req, res) {
     balanceB: 0
   },{ upsert: true }, function(err, doc) {
     if (err || !doc) {
-      handleError(res, err.message, "Failed to create new session.");
+      handleError(res, err && err.message, "Failed to create new session.");
     } else {
       res.status(201).json(doc.ops[0]);
     }
@@ -73,7 +73,7 @@ app.post("/api/session", function(req, res) {
 app.post("/api/send", function(req, res) {
   db.collection("sessions").findOne({ token: req.body.token }, function(err, session) {
     if (err || !session) {
-      handleError(res, err.message, "Failed to get session.");
+      handleError(res, err && err.message, "Failed to get session.");
     } else {
       setTimeout(function() { // add an artificial pause of 1 second to make easier to reproduce
         var shouldProceed = false;
@@ -86,7 +86,7 @@ app.post("/api/send", function(req, res) {
         if (shouldProceed) {
           db.collection("sessions").findOne({ token: req.body.token }, function(err, updatedSession) {
             if (err || !updatedSession) {
-              handleError(res, err.message, "Failed to get session.");
+              handleError(res, err && err.message, "Failed to get session.");
             } else {
               var updatedObject = {
                 _id: session._id,
@@ -95,7 +95,7 @@ app.post("/api/send", function(req, res) {
                 token: session.token};
               db.collection("sessions").save(updatedObject, function(err, doc) {
                 if (err) {
-                  handleError(res, err.message, "Failed to save session.");
+                  handleError(res, err && err.message, "Failed to save session.");
                 } else {
                   res.status(200).json(updatedObject);
                 }
