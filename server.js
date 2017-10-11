@@ -41,7 +41,7 @@ function handleError(res, reason, message, code) {
  */
 
 app.get("/api/session", function(req, res) {
-  db.collection("sessions").findOne({ token: req.body.token }, function(err, doc) {
+  db.collection("sessions").findOne({ token: req.query.token }, function(err, doc) {
     if (err) {
       handleError(res, err.message, "Failed to get session.");
     } else {
@@ -51,12 +51,11 @@ app.get("/api/session", function(req, res) {
 });
 
 app.post("/api/session", function(req, res) {
-
-  db.collection("sessions").insertOne({
+  db.collection("sessions").replaceOne({ token: req.body.token }, {
     token: req.body.token, //not a real token in the secure sense, we don't really care about data because this is a demo
     balanceA: 100,
     balanceB: 0
-  }, function(err, doc) {
+  },{ upsert: true }, function(err, doc) {
     if (err) {
       handleError(res, err.message, "Failed to create new session.");
     } else {
@@ -64,3 +63,43 @@ app.post("/api/session", function(req, res) {
     }
   });
 });
+
+app.post("/api/send", function(req, res) {
+  db.collection("sessions").findOne({ token: req.body.token }, function(err, session) {
+    if (err) {
+      handleError(res, err.message, "Failed to get session.");
+    } else {
+      setTimeout(function() { // add an artificial pause of 1 second to make easier to reproduce
+        var shouldProceed = false;
+        if (req.body.sending && req.body.amount > 0 && req.body.amount <= session.balanceA) {
+          shouldProceed = true;
+        }
+        if (!req.body.sending && req.body.amount > 0 && req.body.amount <= session.balanceB) {
+          shouldProceed = true;
+        }
+        if (shouldProceed) {
+          db.collection("sessions").findOne({ token: req.body.token }, function(err, updatedSession) {
+            if (err) {
+              handleError(res, err.message, "Failed to get session.");
+            } else {
+              var updatedObject = {
+                _id: session._id,
+                balanceA: updatedSession.balanceA + (req.body.sending ? -1*req.body.amount : req.body.amount),
+                balanceB: updatedSession.balanceB + (req.body.sending ? req.body.amount : -1*req.body.amount), 
+                token: session.token};
+              db.collection("sessions").save(updatedObject, function(err, doc) {
+                if (err) {
+                  handleError(res, err.message, "Failed to save session.");
+                } else {
+                  res.status(200).json(updatedObject);
+                }
+              });
+            }
+          });
+        } else {
+          res.status(400).json({"error":"Not enough money / invalid amount!"});
+        }
+      }, 1000);
+    }
+  });
+})
